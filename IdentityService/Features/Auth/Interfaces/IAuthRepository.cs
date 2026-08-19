@@ -1,0 +1,14 @@
+﻿using IdentityService.Domain.Entities;
+
+namespace IdentityService.Features.Auth.Interfaces
+{
+    public interface IAuthRepository
+    {
+        Task<User?> GetUserByEmailAsync(string email);
+        Task<int> RegisterAsync(User user);
+        Task<User?> LoginAsync(string email);
+
+        Task SaveRefreshTokenAsync(int userId, string refreshToken, DateTime expiryDate);
+        Task<User?> GetUserByIdAsync(int userId);
+    }
+}

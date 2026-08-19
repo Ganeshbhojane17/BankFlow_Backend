@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/Databases/">
+    <Project Path="BankFlow.Database/IdentityService.Database.sqlproj" Id="0f6a8d4a-d0bd-4f74-9b44-2c9af63c5ab5">
+      <Build />
+      <Deploy />
+    </Project>
+    <Project Path="CustomerService.Database/CustomerService.Database.sqlproj" Id="a193fc9e-d6c9-4f44-8e4c-9616174a1200">
+      <Build />
+      <Deploy />
+    </Project>
+  </Folder>
+  <Folder Name="/Services/">
+    <Project Path="CustomerService/CustomerService.csproj" Id="f8db24cf-ecc0-432c-92c7-64755fd5f9a4" />
+    <Project Path="IdentityService/IdentityService.csproj" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <File Path="IdentityService/Shared/ApiResponse.cs" />
+    <File Path="IdentityService/Shared/Result.cs" />
+  </Folder>
+</Solution>
