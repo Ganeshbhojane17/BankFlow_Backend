@@ -1,6 +1,7 @@
 ﻿CREATE PROCEDURE [dbo].[usp_Customer_Create]
 (
     @CustomerNumber NVARCHAR(20),
+    @UserId INT,
     @FirstName NVARCHAR(100),
     @LastName NVARCHAR(100),
     @Email NVARCHAR(200),
@@ -26,6 +27,7 @@ BEGIN
     INSERT INTO Customers
     (
         CustomerNumber,
+        UserId,
         FirstName,
         LastName,
         Email,
@@ -47,6 +49,7 @@ BEGIN
     VALUES
     (
         @CustomerNumber,
+        @UserId,
         @FirstName,
         @LastName,
         @Email,

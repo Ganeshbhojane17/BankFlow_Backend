@@ -1,96 +1,63 @@
 ﻿CREATE PROCEDURE [dbo].[usp_Customer_GetAll]
 (
-      @PageNumber INT,
-
-      @PageSize INT,
-
-      @Search NVARCHAR(100)=NULL,
-
-      @SortBy NVARCHAR(50),
-
-      @SortDirection NVARCHAR(4)
+    @PageNumber INT = 1,
+    @PageSize INT = 10,
+    @Search NVARCHAR(200) = NULL,
+    @IsActive BIT = NULL,
+    @SortBy NVARCHAR(50) = 'CreatedDate',
+    @SortDirection NVARCHAR(4) = 'DESC'
 )
 AS
 BEGIN
 
-SET NOCOUNT ON;
+    SET NOCOUNT ON;
 
-SELECT *
+    DECLARE @Offset INT =
+        (@PageNumber - 1) * @PageSize;
 
-FROM Customers
+    SELECT
+        Id,
+        FirstName,
+        LastName,
+        Email,
+        PhoneNumber,
+        DateOfBirth,
+        Address,
+        City,
+        State,
+        IsActive,
+        CreatedDate
+    FROM Customers
+    WHERE
+        (
+            @Search IS NULL
+            OR FirstName LIKE '%' + @Search + '%'
+            OR LastName LIKE '%' + @Search + '%'
+            OR Email LIKE '%' + @Search + '%'
+        )
+        AND
+        (
+            @IsActive IS NULL
+            OR IsActive = @IsActive
+        )
+    ORDER BY
+        CreatedDate DESC
+    OFFSET @Offset ROWS
+    FETCH NEXT @PageSize ROWS ONLY;
 
-WHERE IsDeleted=0
-
-AND
-(
-    @Search IS NULL
-
-    OR
-
-    FirstName LIKE '%'+@Search+'%'
-
-    OR
-
-    LastName LIKE '%'+@Search+'%'
-
-    OR
-
-    Email LIKE '%'+@Search+'%'
-
-    OR
-
-    PhoneNumber LIKE '%'+@Search+'%'
-)
-
-ORDER BY
-
-CASE
-WHEN @SortBy='CreatedDate'
-AND @SortDirection='DESC'
-
-THEN CreatedDate
-
-END DESC,
-
-CASE
-WHEN @SortBy='CreatedDate'
-AND @SortDirection='ASC'
-
-THEN CreatedDate
-
-END ASC
-
-OFFSET
-
-(@PageNumber-1)*@PageSize ROWS
-
-FETCH NEXT @PageSize ROWS ONLY;
-
-SELECT COUNT(*)
-
-FROM Customers
-
-WHERE IsDeleted=0
-
-AND
-(
-    @Search IS NULL
-
-    OR
-
-    FirstName LIKE '%'+@Search+'%'
-
-    OR
-
-    LastName LIKE '%'+@Search+'%'
-
-    OR
-
-    Email LIKE '%'+@Search+'%'
-
-    OR
-
-    PhoneNumber LIKE '%'+@Search+'%'
-);
+    SELECT COUNT(1)
+    FROM Customers
+    WHERE
+        (
+            @Search IS NULL
+            OR FirstName LIKE '%' + @Search + '%'
+            OR LastName LIKE '%' + @Search + '%'
+            OR Email LIKE '%' + @Search + '%'
+        )
+        AND
+        (
+            @IsActive IS NULL
+            OR IsActive = @IsActive
+        );
 
 END

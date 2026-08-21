@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using CustomerService.Application.Common.Interfaces;
 using CustomerService.Application.Features.Customers.DTOs.Requests;
 using CustomerService.Application.Features.Customers.DTOs.Responses;
 using CustomerService.Application.Features.Customers.Interfaces;
@@ -12,15 +13,14 @@ namespace CustomerService.Application.Features.Customers.Services
     public class CustomerServices : ICustomerService
     {
         private readonly ICustomerRepository _repository;
-
+        private readonly ICurrentUserService _currentUser;
         private readonly IMapper _mapper;
 
-        public CustomerServices(
-            ICustomerRepository repository,
+        public CustomerServices(ICustomerRepository repository, ICurrentUserService currentUser,
             IMapper mapper)
         {
             _repository = repository;
-
+            _currentUser = currentUser;
             _mapper = mapper;
         }
 
@@ -83,15 +83,19 @@ namespace CustomerService.Application.Features.Customers.Services
                 "Customer found.");
         }
 
-        public async Task<Result<PagedResult<CustomerResponse>>> GetAllAsync(PagedRequest request)
+        public async Task<Result<PagedResponse<CustomerResponse>>> GetAllAsync(PagedRequest request)
         {
+            request.PageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+            request.PageSize = request.PageSize < 1 ? 10 : request.PageSize;
+
+            request.PageSize = request.PageSize > 100 ? 100 : request.PageSize;
             var result = await _repository.GetAllAsync(request);
 
             var response = _mapper.Map<List<CustomerResponse>>(result.Items);
 
-            return Result<PagedResult<CustomerResponse>>
+            return Result<PagedResponse<CustomerResponse>>
             .Ok(
-                new PagedResult<CustomerResponse>
+                new PagedResponse<CustomerResponse>
                 {
                     Items = response,
 
@@ -184,6 +188,35 @@ namespace CustomerService.Application.Features.Customers.Services
                 request.IsActive
                     ? "Customer activated successfully."
                     : "Customer deactivated successfully.");
+        }
+
+        public async Task<Result<Customer>> GetMyProfileAsync()
+        {
+            if (!_currentUser.IsAuthenticated)
+            {
+                return Result<Customer>.Failure(
+                    "User is not authenticated.");
+            }
+
+            if (!_currentUser.UserId.HasValue)
+            {
+                return Result<Customer>.Failure(
+                    "User identity could not be determined.");
+            }
+
+            var customer = await _repository.GetByUserIdAsync(_currentUser.UserId.Value);
+
+            if (customer == null)
+            {
+                return Result<Customer>.Failure(
+                    "Customer profile not found.");
+            }
+
+            var customerDto =
+                _mapper.Map<Customer>(customer);
+
+            return Result<Customer>.Ok(
+                customer);
         }
     }
 }

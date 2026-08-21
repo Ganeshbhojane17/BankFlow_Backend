@@ -5,6 +5,7 @@ namespace CustomerService.Domain.Entities
     public class Customer : BaseEntity
     {
         public string CustomerNumber { get; set; } = string.Empty;
+        public int UserId { get; set; }
 
         public string FirstName { get; set; } = string.Empty;
 

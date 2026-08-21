@@ -69,5 +69,6 @@
     <Build Include="Stored Procedures\usp_Customer_Delete.sql" />
     <Build Include="Stored Procedures\usp_Customer_GetByEmailExceptId.sql" />
     <Build Include="Stored Procedures\usp_Customer_ChangeStatus.sql" />
+    <Build Include="Stored Procedures\usp_Customer_GetByUserId.sql" />
   </ItemGroup>
 </Project>

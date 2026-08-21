@@ -1,6 +1,7 @@
 ﻿CREATE TABLE [dbo].[Customers]
 (
     Id                  INT IDENTITY(1,1) PRIMARY KEY,
+    UserId              INT NOT NULL UNIQUE,
 
     CustomerNumber      NVARCHAR(20) NOT NULL UNIQUE,
 

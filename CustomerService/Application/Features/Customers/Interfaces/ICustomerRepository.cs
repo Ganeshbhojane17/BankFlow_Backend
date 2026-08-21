@@ -11,7 +11,8 @@ namespace CustomerService.Application.Features.Customers.Interfaces
 
         Task<Customer?> GetByCustomerNumberAsync(string customerNumber);
         Task<Customer?> GetByIdAsync(int id);
-        Task<PagedResult<Customer>>GetAllAsync(PagedRequest request);
+        Task<Customer?> GetByUserIdAsync(int userId);
+        Task<PagedResponse<Customer>>GetAllAsync(PagedRequest request);
         Task UpdateAsync(Customer customer);
         Task DeleteAsync(int id, string modifiedBy);
         Task<Customer?> GetByEmailExceptIdAsync(string email, int id);

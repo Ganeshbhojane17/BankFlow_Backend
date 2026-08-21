@@ -21,16 +21,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Application\Common\Interfaces\" />
     <Folder Include="Application\Common\Models\" />
-    <Folder Include="Application\Common\Exceptions\" />
     <Folder Include="Application\Common\Extensions\" />
     <Folder Include="Application\Features\Customers\Commands\" />
     <Folder Include="Application\Features\Customers\Queries\" />
-    <Folder Include="Domain\Constants\" />
     <Folder Include="Domain\Enums\" />
     <Folder Include="Domain\ValueObjects\" />
-    <Folder Include="Infrastructure\Logging\" />
+    <Folder Include="Infrastructure\Extensions\" />
     <Folder Include="Infrastructure\Mapping\" />
     <Folder Include="Infrastructure\Persistence\Sql\" />
     <Folder Include="Shared\Extensions\" />

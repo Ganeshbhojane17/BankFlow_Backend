@@ -75,30 +75,42 @@ namespace CustomerService.Infrastructure.Persistence.Repositories
                 commandType: CommandType.StoredProcedure);
         }
 
-        public async Task<PagedResult<Customer>> GetAllAsync(PagedRequest request)
+        public async Task<Customer?> GetByUserIdAsync(int userId)
         {
             using var connection = _context.CreateConnection();
-            using var multi = await connection.QueryMultipleAsync(
-                    "usp_Customer_GetAll",
-                    new
-                    {
-                        request.PageNumber,
-                        request.PageSize,
-                        request.Search,
-                        request.SortBy,
-                        request.SortDirection
-                    },
-                    commandType: CommandType.StoredProcedure);
+            return await connection.QueryFirstOrDefaultAsync<Customer>(
+                "usp_Customer_GetByUserId",
+                new
+                {
+                    UserId = userId
+                },
+                commandType: CommandType.StoredProcedure);
+        }
 
-            var customers = await multi.ReadAsync<Customer>();
-            var total = await multi.ReadSingleAsync<int>();
+        public async Task<PagedResponse<Customer>> GetAllAsync(PagedRequest request)
+        {
+            using var connection = _context.CreateConnection();
 
-            return new PagedResult<Customer>
+            var parameters = new DynamicParameters();
+
+            parameters.Add("@PageNumber", request.PageNumber);
+            parameters.Add("@PageSize", request.PageSize);
+            parameters.Add("@Search", request.Search);
+            parameters.Add("@IsActive", request.IsActive);
+
+            var result = await connection.QueryMultipleAsync(
+                    "usp_Customer_GetAll", parameters, commandType: CommandType.StoredProcedure);
+
+            var customers = await result.ReadAsync<Customer>();
+
+            var totalRecords = await result.ReadSingleAsync<int>();
+
+            return new PagedResponse<Customer>
             {
                 Items = customers,
                 PageNumber = request.PageNumber,
                 PageSize = request.PageSize,
-                TotalRecords = total
+                TotalRecords = totalRecords
             };
         }
 

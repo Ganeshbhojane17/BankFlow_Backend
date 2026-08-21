@@ -3,6 +3,5 @@
     public class ChangeCustomerStatusRequest
     {
         public bool IsActive { get; set; }
-
     }
 }
