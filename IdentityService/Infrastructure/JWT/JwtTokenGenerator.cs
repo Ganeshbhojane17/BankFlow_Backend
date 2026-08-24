@@ -22,12 +22,25 @@ public class JwtTokenGenerator : IJwtTokenGenerator
     {
         var claims = new List<Claim>
         {
-            new(JwtRegisteredClaimNames.Sub,user.Id.ToString()),
-            new(JwtRegisteredClaimNames.Email,user.Email),
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
 
-            new(ClaimTypes.Name,user.FirstName),
+            // ASP.NET Core identity claim
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
 
-            new(ClaimTypes.Role,user.Role)
+            // Email
+            new(
+                JwtRegisteredClaimNames.Email,
+                user.Email),
+
+            // Display name
+            new(
+                ClaimTypes.Name,
+                $"{user.FirstName} {user.LastName}"),
+
+            // Role
+            new(
+                ClaimTypes.Role,
+                user.Role)
         };
 
         var key = new SymmetricSecurityKey(
@@ -39,16 +52,11 @@ public class JwtTokenGenerator : IJwtTokenGenerator
                 SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
-
             issuer: _options.Issuer,
-
             audience: _options.Audience,
-
             claims: claims,
-
             expires: DateTime.UtcNow.AddMinutes(
                 _options.ExpiryMinutes),
-
             signingCredentials: credentials
         );
 
@@ -58,7 +66,8 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 
     public string GenerateRefreshToken()
     {
-        var bytes = RandomNumberGenerator.GetBytes(64);
+        var bytes =
+            RandomNumberGenerator.GetBytes(64);
 
         return Convert.ToBase64String(bytes);
     }

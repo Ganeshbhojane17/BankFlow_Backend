@@ -4,6 +4,7 @@ using IdentityService.Features.Auth.Interfaces;
 using IdentityService.Features.Auth.Repositories;
 using IdentityService.Features.Auth.Services;
 using IdentityService.Infrastructure.JWT;
+using IdentityService.Infrastructure.Messaging;
 using IdentityService.Infrastructure.Password;
 
 namespace IdentityService.Extensions
@@ -19,6 +20,8 @@ namespace IdentityService.Extensions
 
             services.AddScoped<IPasswordHasher, PasswordHasher>();
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+            services.AddScoped<IOutboxRepository, OutboxRepository>();
+            services.AddHostedService<OutboxProcessor>();
 
             return services;
         }
@@ -31,6 +34,11 @@ namespace IdentityService.Extensions
                 configuration.GetSection(DatabaseOptions.SectionName));
 
             services.AddSingleton<DapperContext>();
+
+            //RabbitMQ
+            services.Configure<RabbitMqOptions>( configuration.GetSection("RabbitMq"));
+
+            services.AddScoped<IRabbitMqPublisher, RabbitMqPublisher>();
 
             return services;
         }

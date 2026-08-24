@@ -15,6 +15,7 @@ namespace CustomerService.Application.Features.Customers.Interfaces
         Task<Result> DeleteAsync(int id);
         Task<Result<CustomerResponse>> UpdateAsync(int id, UpdateCustomerRequest request);
         Task<Result> ChangeStatusAsync(int id, ChangeCustomerStatusRequest request);
+        Task CreateFromRegistrationAsync(CustomerRegisteredEvent customerEvent);
     }
 }           
         

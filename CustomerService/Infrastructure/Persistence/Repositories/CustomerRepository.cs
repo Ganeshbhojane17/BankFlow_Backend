@@ -24,7 +24,9 @@ namespace CustomerService.Infrastructure.Persistence.Repositories
                 "usp_Customer_Create",
                 new
                 {
+                    
                     customer.CustomerNumber,
+                    customer.UserId,
                     customer.FirstName,
                     customer.LastName,
                     customer.Email,

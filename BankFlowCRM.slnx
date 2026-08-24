@@ -13,8 +13,5 @@
     <Project Path="CustomerService/CustomerService.csproj" Id="f8db24cf-ecc0-432c-92c7-64755fd5f9a4" />
     <Project Path="IdentityService/IdentityService.csproj" />
   </Folder>
-  <Folder Name="/Shared/">
-    <File Path="IdentityService/Shared/ApiResponse.cs" />
-    <File Path="IdentityService/Shared/Result.cs" />
-  </Folder>
+  <Project Path="Shared.Contracts/Shared.Contracts.csproj" Id="a0465e4e-de2b-4485-bb25-bfd5a2b961ca" />
 </Solution>

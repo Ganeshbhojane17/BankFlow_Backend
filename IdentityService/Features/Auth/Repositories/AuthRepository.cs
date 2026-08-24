@@ -53,21 +53,22 @@ namespace IdentityService.Features.Auth.Repositories
                  commandType: CommandType.StoredProcedure);
         }
 
-        public async Task<int> RegisterAsync(User user)
+        public async Task<int> RegisterAsync(User user, IDbTransaction transaction)
         {
             using var connection = _context.CreateConnection();
 
-            return await connection.ExecuteAsync(
-                "usp_User_Register",
-                new
-                {
-                    user.FirstName,
-                    user.LastName,
-                    user.Email,
-                    user.PasswordHash,
-                    user.Role
-                },
-                commandType: CommandType.StoredProcedure);
+            var parameters = new
+            {
+                user.FirstName,
+                user.LastName,
+                user.Email,
+                user.PasswordHash,
+                user.Role
+            };
+            var userId = await transaction.Connection!.QuerySingleAsync<int>("dbo.usp_User_Register", parameters, transaction: transaction,
+              commandType: CommandType.StoredProcedure);
+
+            return userId;
         }
 
         public async Task SaveRefreshTokenAsync(int userId, string refreshToken, DateTime expiryDate)

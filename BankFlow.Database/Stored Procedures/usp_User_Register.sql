@@ -1,32 +1,37 @@
 ﻿CREATE PROCEDURE dbo.usp_User_Register
-
+(
     @FirstName NVARCHAR(100),
     @LastName NVARCHAR(100),
     @Email NVARCHAR(200),
-    @PasswordHash NVARCHAR(MAX),
+    @PasswordHash NVARCHAR(500),
     @Role NVARCHAR(50)
-
+)
 AS
 BEGIN
 
-SET NOCOUNT ON;
+    SET NOCOUNT ON;
 
-INSERT INTO Users
-(
-FirstName,
-LastName,
-Email,
-PasswordHash,
-Role
-)
+    INSERT INTO Users
+    (
+        FirstName,
+        LastName,
+        Email,
+        PasswordHash,
+        Role,
+        IsActive,
+        CreatedDate
+    )
+    VALUES
+    (
+        @FirstName,
+        @LastName,
+        @Email,
+        @PasswordHash,
+        @Role,
+        1,
+        GETUTCDATE()
+    );
 
-VALUES
-(
-@FirstName,
-@LastName,
-@Email,
-@PasswordHash,
-@Role
-);
+    SELECT CAST(SCOPE_IDENTITY() AS INT) AS UserId;
 
 END

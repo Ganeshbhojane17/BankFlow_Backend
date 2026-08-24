@@ -4,6 +4,7 @@ using CustomerService.Application.Features.Customers.DTOs.Requests;
 using CustomerService.Application.Features.Customers.DTOs.Responses;
 using CustomerService.Application.Features.Customers.Interfaces;
 using CustomerService.Domain.Entities;
+using CustomerService.Infrastructure.Persistence.Repositories;
 using CustomerService.Shared;
 using CustomerService.Shared.Helpers;
 using CustomerService.Shared.Pagination;
@@ -217,6 +218,30 @@ namespace CustomerService.Application.Features.Customers.Services
 
             return Result<Customer>.Ok(
                 customer);
+        }
+
+        public async Task CreateFromRegistrationAsync(CustomerRegisteredEvent customerEvent)
+        {
+            var existingCustomer = await _repository.GetByUserIdAsync(customerEvent.UserId);
+
+            if (existingCustomer != null)
+            {
+                return;
+            }
+
+            var customer = new Customer
+            {
+                UserId = customerEvent.UserId,
+                FirstName = customerEvent.FirstName,
+                LastName = customerEvent.LastName,
+                Email = customerEvent.Email,
+                IsActive = true,
+                CreatedDate = DateTime.UtcNow,
+                CreatedBy = "IdentityService",
+                CustomerNumber = CustomerNumberGenerator.Generate()
+            };
+
+            await _repository.CreateAsync(customer);
         }
     }
 }

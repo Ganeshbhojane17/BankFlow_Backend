@@ -71,6 +71,11 @@
     <Build Include="Stored Procedures\usp_RefreshToken_Get.sql" />
     <Build Include="Stored Procedures\usp_RefreshToken_Revoke.sql" />
     <Build Include="Stored Procedures\usp_User_GetById.sql" />
+    <Build Include="Tables\OutboxMessages.sql" />
+    <Build Include="Stored Procedures\usp_Outbox_Insert.sql" />
+    <Build Include="Stored Procedures\usp_Outbox_MarkProcessed.sql" />
+    <Build Include="Stored Procedures\usp_Outbox_GetPending.sql" />
+    <Build Include="Stored Procedures\usp_Outbox_MarkFailed.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Seed\RoleSeed.sql" />

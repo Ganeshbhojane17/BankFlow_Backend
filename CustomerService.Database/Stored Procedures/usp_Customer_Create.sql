@@ -5,7 +5,7 @@
     @FirstName NVARCHAR(100),
     @LastName NVARCHAR(100),
     @Email NVARCHAR(200),
-    @PhoneNumber NVARCHAR(20),
+    @PhoneNumber NVARCHAR(20) = NULL,
     @DateOfBirth DATE = NULL,
     @Gender NVARCHAR(20) = NULL,
     @PANNumber NVARCHAR(20) = NULL,

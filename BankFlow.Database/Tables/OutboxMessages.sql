@@ -1,0 +1,22 @@
+﻿CREATE TABLE OutboxMessages
+(
+    Id BIGINT IDENTITY(1,1) PRIMARY KEY,
+
+    EventId UNIQUEIDENTIFIER NOT NULL,
+
+    EventType NVARCHAR(200) NOT NULL,
+
+    RoutingKey NVARCHAR(200) NOT NULL,
+
+    Payload NVARCHAR(MAX) NOT NULL,
+
+    CreatedOn DATETIME2 NOT NULL
+        DEFAULT GETUTCDATE(),
+
+    ProcessedOn DATETIME2 NULL,
+
+    RetryCount INT NOT NULL
+        DEFAULT 0,
+
+    ErrorMessage NVARCHAR(MAX) NULL
+);

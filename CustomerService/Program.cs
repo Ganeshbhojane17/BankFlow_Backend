@@ -4,6 +4,7 @@ using CustomerService.Application.Features.Customers.Mappings;
 using CustomerService.Domain.Constants;
 using CustomerService.Infrastructure.DependencyInjection;
 using CustomerService.Infrastructure.Logging;
+using CustomerService.Infrastructure.Messaging;
 using CustomerService.Infrastructure.Middleware;
 using CustomerService.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -12,7 +13,7 @@ using System.Text;
 
 
 var builder = WebApplication.CreateBuilder(args);
-
+var configuration = builder.Configuration;
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -141,6 +142,16 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+
+builder.Services.Configure<RabbitMqOptions>(
+    configuration.GetSection("RabbitMq"));
+
+builder.Services.AddScoped<
+    CustomerRegisteredConsumer>();
+
+builder.Services.AddHostedService<
+    RabbitMqConsumerService>();
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
