@@ -38,5 +38,12 @@ namespace CustomerService.Domain.Entities
         public string? PostalCode { get; set; }
 
         public bool IsActive { get; set; }
+        public string? ProfileImagePath { get; set; }
+
+        public string? DocumentPath { get; set; }
+
+        public string? DocumentName { get; set; }
+
+        public string? DocumentContentType { get; set; }
     }
 }

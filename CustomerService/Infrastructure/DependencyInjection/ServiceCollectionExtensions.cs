@@ -1,7 +1,11 @@
-﻿using CustomerService.Application.Features.Customers.Interfaces;
+﻿using CustomerService.Application.Common.Interfaces;
+using CustomerService.Application.Features.Customers.Interfaces;
+using CustomerService.Application.Features.Customers.Services;
+using CustomerService.Infrastructure.FileStorage;
+using CustomerService.Infrastructure.Messaging;
 using CustomerService.Infrastructure.Persistence.Dapper;
 using CustomerService.Infrastructure.Persistence.Repositories;
-using CustomerService.Application.Features.Customers.Services;
+using CustomerService.Infrastructure.Security;
 
 namespace CustomerService.Infrastructure.DependencyInjection
 {
@@ -14,6 +18,16 @@ namespace CustomerService.Infrastructure.DependencyInjection
             services.AddScoped<ICustomerRepository, CustomerRepository>();
 
             services.AddScoped<ICustomerService, CustomerServices>();
+            services.AddScoped<IFileStorageService,LocalFileStorageService>();
+            services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.Configure<RabbitMqOptions>(configuration.GetSection("RabbitMq"));
+            services.AddScoped<CustomerRegisteredConsumer>();
+            services.AddHostedService<RabbitMqConsumerService>();
+            services.AddScoped<IOutboxRepository, OutboxRepository>();
+            services.AddScoped<IRabbitMqPublisher, RabbitMqPublisher>();
+            services.AddHostedService<OutboxProcessor>();
+            services.AddScoped<UserCreatedConsumer>();
+
 
             return services;
         }

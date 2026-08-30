@@ -11,5 +11,7 @@ namespace IdentityService.Features.Auth.Interfaces
 
         Task SaveRefreshTokenAsync(int userId, string refreshToken, DateTime expiryDate);
         Task<User?> GetUserByIdAsync(int userId);
+        Task<int> CreateFromCustomerAsync(User user, IDbTransaction transaction);
+        
     }
 }

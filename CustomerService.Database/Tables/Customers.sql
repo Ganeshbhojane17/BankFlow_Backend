@@ -45,5 +45,9 @@
 
     ModifiedBy          NVARCHAR(100) NULL,
 
-    IsDeleted           BIT NOT NULL DEFAULT(0)
+    IsDeleted           BIT NOT NULL DEFAULT(0),
+    ProfileImagePath NVARCHAR(500) NULL,
+    DocumentPath NVARCHAR(500) NULL,
+    DocumentName NVARCHAR(255) NULL,
+    DocumentContentType NVARCHAR(100) NULL
 );

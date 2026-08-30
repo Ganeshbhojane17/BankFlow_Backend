@@ -84,5 +84,29 @@ namespace IdentityService.Features.Auth.Repositories
                 },
                 commandType: CommandType.StoredProcedure);
         }
+
+        public async Task<int> CreateFromCustomerAsync(User user, IDbTransaction transaction)
+        {
+            var parameters = new
+            {
+                user.FirstName,
+                user.LastName,
+                user.Email,
+                user.PasswordHash,
+                user.Role,
+                user.IsActive
+            };
+
+            var userId =
+                await transaction.Connection!.QuerySingleAsync<int>(
+                    "dbo.usp_User_CreateFromCustomer",
+                    parameters,
+                    transaction: transaction,
+                    commandType: CommandType.StoredProcedure);
+
+            return userId;
+        }
+
+       
     }
 }

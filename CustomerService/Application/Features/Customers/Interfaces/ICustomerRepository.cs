@@ -1,12 +1,13 @@
 ﻿using CustomerService.Domain.Entities;
 using CustomerService.Shared.Pagination;
+using System.Data;
 
 namespace CustomerService.Application.Features.Customers.Interfaces
 {
     public interface ICustomerRepository
     {
+        Task<int> CreateAsync(Customer customer, IDbConnection connection, IDbTransaction transaction);
         Task<int> CreateAsync(Customer customer);
-
         Task<Customer?> GetByEmailAsync(string email);
 
         Task<Customer?> GetByCustomerNumberAsync(string customerNumber);
@@ -17,5 +18,6 @@ namespace CustomerService.Application.Features.Customers.Interfaces
         Task DeleteAsync(int id, string modifiedBy);
         Task<Customer?> GetByEmailExceptIdAsync(string email, int id);
         Task ChangeStatusAsync(int id, bool isActive, string modifiedBy);
+        Task UpdateUserIdAsync(int customerId, int userId);
     }
 }

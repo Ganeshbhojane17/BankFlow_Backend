@@ -33,5 +33,8 @@
         public string? PostalCode { get; set; }
 
         public bool IsActive { get; set; }
+        public IFormFile? ProfileImage { get; set; }
+
+        public IFormFile? Document { get; set; }
     }
 }

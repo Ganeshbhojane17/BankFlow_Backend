@@ -39,6 +39,8 @@ namespace IdentityService.Extensions
             services.Configure<RabbitMqOptions>( configuration.GetSection("RabbitMq"));
 
             services.AddScoped<IRabbitMqPublisher, RabbitMqPublisher>();
+            services.AddScoped<UserProvisioningConsumer>();
+            services.AddHostedService<RabbitMqConsumerService>();
 
             return services;
         }

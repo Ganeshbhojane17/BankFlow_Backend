@@ -2,6 +2,7 @@
 using IdentityService.Features.Auth.DTOs.Requests;
 using IdentityService.Features.Auth.DTOs.Responses;
 using IdentityService.Shared;
+using Shared.Contracts.Events;
 
 namespace IdentityService.Features.Auth.Interfaces
 {
@@ -12,6 +13,6 @@ namespace IdentityService.Features.Auth.Interfaces
 
         Task<Result<RefreshTokenResponseDto>> RefreshTokenAsync(RefreshTokenRequestDto request);
         Task<Result> LogoutAsync(LogoutRequestDto request);
-
+        Task<Result> CreateFromCustomerAsync(UserProvisioningRequested userEvent);
     }
 }

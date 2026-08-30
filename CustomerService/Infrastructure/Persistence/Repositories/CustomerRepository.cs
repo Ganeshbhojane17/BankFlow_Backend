@@ -16,6 +16,38 @@ namespace CustomerService.Infrastructure.Persistence.Repositories
             _context = context;
         }
 
+        public async Task<int> CreateAsync(Customer customer, IDbConnection connection, IDbTransaction transaction)
+        {
+            return await connection.ExecuteScalarAsync<int>(
+                   "usp_Customer_Create", new
+            {
+                   customer.CustomerNumber,
+                   customer.UserId,
+                   customer.FirstName,
+                   customer.LastName,
+                   customer.Email,
+                   customer.PhoneNumber,
+                   customer.DateOfBirth,
+                   customer.Gender,
+                   customer.PANNumber,
+                   customer.AadhaarNumber,
+                   customer.Occupation,
+                   customer.AnnualIncome,
+                   customer.Address,
+                   customer.City,
+                   customer.State,
+                   customer.Country,
+                   customer.PostalCode,
+                   customer.ProfileImagePath,
+                   customer.DocumentPath,
+                   customer.DocumentName,
+                   customer.DocumentContentType,
+                   customer.CreatedBy
+             },
+               transaction: transaction,
+               commandType: CommandType.StoredProcedure);
+        }
+
         public async Task<int> CreateAsync(Customer customer)
         {
             using var connection = _context.CreateConnection();
@@ -24,7 +56,6 @@ namespace CustomerService.Infrastructure.Persistence.Repositories
                 "usp_Customer_Create",
                 new
                 {
-                    
                     customer.CustomerNumber,
                     customer.UserId,
                     customer.FirstName,
@@ -42,11 +73,14 @@ namespace CustomerService.Infrastructure.Persistence.Repositories
                     customer.State,
                     customer.Country,
                     customer.PostalCode,
+                    customer.ProfileImagePath,
+                    customer.DocumentPath,
+                    customer.DocumentName,
+                    customer.DocumentContentType,
                     customer.CreatedBy
                 },
                 commandType: CommandType.StoredProcedure);
         }
-
         public async Task<Customer?> GetByEmailAsync(string email)
         {
             using var connection = _context.CreateConnection();
@@ -140,7 +174,10 @@ namespace CustomerService.Infrastructure.Persistence.Repositories
                     customer.State,
                     customer.Country,
                     customer.PostalCode,
-                    customer.IsActive,
+                    customer.ProfileImagePath,
+                    customer.DocumentPath,
+                    customer.DocumentName,
+                    customer.DocumentContentType,
                     customer.ModifiedBy
                 },
                 commandType: CommandType.StoredProcedure);
@@ -183,6 +220,18 @@ namespace CustomerService.Infrastructure.Persistence.Repositories
                     Id = id,
                     IsActive = isActive,
                     ModifiedBy = modifiedBy
+                },
+                commandType: CommandType.StoredProcedure);
+        }
+
+        public async Task UpdateUserIdAsync(int customerId, int userId)
+        {
+            using var connection = _context.CreateConnection();
+            await connection.ExecuteAsync("usp_Customer_UpdateUserId",
+                new
+                {
+                    CustomerId = customerId,
+                    UserId = userId
                 },
                 commandType: CommandType.StoredProcedure);
         }

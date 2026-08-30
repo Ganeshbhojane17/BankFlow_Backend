@@ -17,7 +17,11 @@
     @State NVARCHAR(100) = NULL,
     @Country NVARCHAR(100) = NULL,
     @PostalCode NVARCHAR(20) = NULL,
-    @CreatedBy NVARCHAR(100)
+    @CreatedBy NVARCHAR(100),
+    @ProfileImagePath NVARCHAR(500) = NULL,
+    @DocumentPath NVARCHAR(500) = NULL,
+    @DocumentName NVARCHAR(255) = NULL,
+    @DocumentContentType NVARCHAR(100) = NULL
 )
 AS
 BEGIN
@@ -43,6 +47,10 @@ BEGIN
         State,
         Country,
         PostalCode,
+        ProfileImagePath,
+        DocumentPath,
+        DocumentName,
+        DocumentContentType,
         CreatedBy
     )
 
@@ -65,6 +73,10 @@ BEGIN
         @State,
         @Country,
         @PostalCode,
+        @ProfileImagePath,
+        @DocumentPath,
+        @DocumentName,
+        @DocumentContentType,
         @CreatedBy
     );
 

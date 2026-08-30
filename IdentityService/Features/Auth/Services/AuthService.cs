@@ -11,6 +11,7 @@ using IdentityService.Infrastructure.Messaging;
 using IdentityService.Infrastructure.Password;
 using IdentityService.Shared;
 using Microsoft.Extensions.Options;
+using Shared.Contracts.Events;
 using System.Data;
 using System.Text.Json;
 
@@ -196,6 +197,72 @@ namespace IdentityService.Features.Auth.Services
                     RefreshToken = newRefreshToken
                 },
                 "Token refreshed successfully.");
+        }
+
+        public async Task<Result> CreateFromCustomerAsync(UserProvisioningRequested userEvent)
+        {
+            // 1. Check if user already exists
+            var existingUser = await _authRepository.GetUserByEmailAsync(userEvent.Email);
+            if (existingUser != null)
+            {
+                return Result.Ok("User already exists.");
+            }
+
+            // 2. Create User
+            var user = new User
+            {
+                FirstName = userEvent.FirstName,
+                LastName = userEvent.LastName,
+                Email = userEvent.Email,
+
+                // Customer-created users don't have
+                // a password yet.
+                PasswordHash = string.Empty,
+
+                Role = "Customer",
+
+                IsActive = false
+            };
+
+            using var connection = _dbContext.CreateConnection();
+            connection.Open();
+            using var transaction = connection.BeginTransaction();
+
+            try
+            {
+                // 3. Insert User
+                var userId = await _authRepository.CreateFromCustomerAsync(user, transaction);
+                user.Id = userId;
+                // 4. Create UserCreated event
+                var userCreatedEvent = new UserCreatedEvent
+                    {
+                        UserId = user.Id,
+                        CustomerId = userEvent.CustomerId,
+                        Email = user.Email
+                    };
+                // 5. Serialize event
+                var payload = JsonSerializer.Serialize(userCreatedEvent);
+                // 6. Create Outbox message
+                var outboxMessage = new OutboxMessage
+                    {
+                        EventId = Guid.NewGuid(),
+                        EventType = nameof(UserCreatedEvent),
+                        RoutingKey = "user.created",
+                        Payload = payload,
+                        CreatedOn = DateTime.UtcNow
+                    };
+
+                // 7. Save Outbox
+                await _outboxRepository.AddAsync(outboxMessage, transaction);
+                // 8. Commit
+                transaction.Commit();
+                return Result.Ok("User created successfully.");
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
 
 

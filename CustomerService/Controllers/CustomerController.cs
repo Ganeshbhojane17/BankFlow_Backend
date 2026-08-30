@@ -15,16 +15,14 @@ public class CustomerController : ControllerBase
 {
     private readonly ICustomerService _service;
 
-    public CustomerController(
-        ICustomerService service)
+    public CustomerController(ICustomerService service)
     {
         _service = service;
     }
 
     [HttpPost]
-    [Authorize(
-        Policy = AuthorizationPolicies.ManageCustomers)]
-    public async Task<IActionResult> Create([FromBody] CreateCustomerRequest request)
+    [Authorize(Policy = AuthorizationPolicies.ManageCustomers)]
+    public async Task<IActionResult> Create([FromForm] CreateCustomerRequest request)
     {
         var result = await _service.CreateAsync(request);
 
@@ -61,15 +59,10 @@ public class CustomerController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(
-        Policy = AuthorizationPolicies.ManageCustomers)]
-    public async Task<IActionResult> Update(
-        int id,
-        [FromBody] UpdateCustomerRequest request)
+    [Authorize(Policy = AuthorizationPolicies.ManageCustomers)]
+    public async Task<IActionResult> Update(int id, [FromForm] UpdateCustomerRequest request)
     {
-        var result =
-            await _service.UpdateAsync(id, request);
-
+        var result = await _service.UpdateAsync(id, request);
         if (!result.Success)
             return BadRequest(result);
 
@@ -77,12 +70,10 @@ public class CustomerController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(
-        Policy = AuthorizationPolicies.DeleteCustomers)]
+    [Authorize(Policy = AuthorizationPolicies.DeleteCustomers)]
     public async Task<IActionResult> Delete(int id)
     {
-        var result =
-            await _service.DeleteAsync(id);
+        var result = await _service.DeleteAsync(id);
 
         if (!result.Success)
             return NotFound(result);

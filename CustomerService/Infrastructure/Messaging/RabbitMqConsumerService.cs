@@ -9,66 +9,115 @@ public class RabbitMqConsumerService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly RabbitMqOptions _options;
+    private readonly ILogger<RabbitMqConsumerService> _logger;
 
     private IConnection? _connection;
     private IChannel? _channel;
 
     public RabbitMqConsumerService(
         IServiceScopeFactory scopeFactory,
-        IOptions<RabbitMqOptions> options)
+        IOptions<RabbitMqOptions> options,
+        ILogger<RabbitMqConsumerService> logger)
     {
         _scopeFactory = scopeFactory;
         _options = options.Value;
+        _logger = logger;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(
+        CancellationToken stoppingToken)
     {
-        var factory = new ConnectionFactory
+        try
         {
-            HostName = _options.HostName,
-            Port = _options.Port,
-            UserName = _options.UserName,
-            Password = _options.Password
-        };
+            var factory = new ConnectionFactory
+            {
+                HostName = _options.HostName,
+                Port = _options.Port,
+                UserName = _options.UserName,
+                Password = _options.Password
+            };
 
-        _connection = await factory.CreateConnectionAsync(stoppingToken);
-        _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
-        await ConfigureRabbitMqAsync(stoppingToken);
-        await StartConsumerAsync(stoppingToken);
-        await Task.Delay(Timeout.Infinite, stoppingToken);
+            _connection =
+                await factory.CreateConnectionAsync(
+                    stoppingToken);
+
+            _channel =
+                await _connection.CreateChannelAsync(
+                    cancellationToken: stoppingToken);
+
+            await ConfigureRabbitMqAsync(
+                stoppingToken);
+
+            await StartConsumerAsync(
+                stoppingToken);
+
+            _logger.LogInformation(
+                "CustomerService RabbitMQ consumer started.");
+
+            await Task.Delay(
+                Timeout.Infinite,
+                stoppingToken);
+        }
+        catch (OperationCanceledException)
+            when (stoppingToken.IsCancellationRequested)
+        {
+            _logger.LogInformation(
+                "RabbitMQ consumer is stopping.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "RabbitMQ consumer stopped because of an error.");
+        }
     }
 
-    private async Task ConfigureRabbitMqAsync(CancellationToken cancellationToken)
+
+    // =====================================================
+    // RabbitMQ Configuration
+    // =====================================================
+
+    private async Task ConfigureRabbitMqAsync(
+        CancellationToken cancellationToken)
     {
+        // -------------------------------------------------
+        // Exchanges
+        // -------------------------------------------------
+
         await _channel!.ExchangeDeclareAsync(
             RabbitMqConstants.MainExchange,
             ExchangeType.Direct,
-            true,
-            false,
+            durable: true,
+            autoDelete: false,
             cancellationToken: cancellationToken);
 
         await _channel.ExchangeDeclareAsync(
             RabbitMqConstants.RetryExchange,
             ExchangeType.Direct,
-            true,
-            false,
+            durable: true,
+            autoDelete: false,
             cancellationToken: cancellationToken);
 
         await _channel.ExchangeDeclareAsync(
             RabbitMqConstants.DeadLetterExchange,
             ExchangeType.Direct,
-            true,
-            false,
+            durable: true,
+            autoDelete: false,
             cancellationToken: cancellationToken);
+
+
+        // -------------------------------------------------
+        // Customer Registered
+        // -------------------------------------------------
 
         await _channel.QueueDeclareAsync(
             RabbitMqConstants.CustomerRegisteredQueue,
-            true,
-            false,
-            false,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
             cancellationToken: cancellationToken);
 
-        var retryArguments =
+        var customerRetryArguments =
             new Dictionary<string, object?>
             {
                 ["x-message-ttl"] =
@@ -83,18 +132,63 @@ public class RabbitMqConsumerService : BackgroundService
 
         await _channel.QueueDeclareAsync(
             RabbitMqConstants.CustomerRegisteredRetryQueue,
-            true,
-            false,
-            false,
-            retryArguments,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
+            arguments: customerRetryArguments,
             cancellationToken: cancellationToken);
 
         await _channel.QueueDeclareAsync(
             RabbitMqConstants.CustomerRegisteredDlq,
-            true,
-            false,
-            false,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
             cancellationToken: cancellationToken);
+
+
+        // -------------------------------------------------
+        // User Created
+        // -------------------------------------------------
+
+        await _channel.QueueDeclareAsync(
+            RabbitMqConstants.UserCreatedQueue,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
+            cancellationToken: cancellationToken);
+
+        var userCreatedRetryArguments =
+            new Dictionary<string, object?>
+            {
+                ["x-message-ttl"] =
+                    _options.RetryDelaySeconds * 1000,
+
+                ["x-dead-letter-exchange"] =
+                    RabbitMqConstants.MainExchange,
+
+                ["x-dead-letter-routing-key"] =
+                    RabbitMqConstants.UserCreatedRoutingKey
+            };
+
+        await _channel.QueueDeclareAsync(
+            RabbitMqConstants.UserCreatedRetryQueue,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
+            arguments: userCreatedRetryArguments,
+            cancellationToken: cancellationToken);
+
+        await _channel.QueueDeclareAsync(
+            RabbitMqConstants.UserCreatedDlq,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
+            cancellationToken: cancellationToken);
+
+
+        // -------------------------------------------------
+        // Customer Registered Bindings
+        // -------------------------------------------------
 
         await _channel.QueueBindAsync(
             RabbitMqConstants.CustomerRegisteredQueue,
@@ -113,7 +207,35 @@ public class RabbitMqConsumerService : BackgroundService
             RabbitMqConstants.DeadLetterExchange,
             RabbitMqConstants.CustomerRegisteredDlqRoutingKey,
             cancellationToken: cancellationToken);
+
+
+        // -------------------------------------------------
+        // User Created Bindings
+        // -------------------------------------------------
+
+        await _channel.QueueBindAsync(
+            RabbitMqConstants.UserCreatedQueue,
+            RabbitMqConstants.MainExchange,
+            RabbitMqConstants.UserCreatedRoutingKey,
+            cancellationToken: cancellationToken);
+
+        await _channel.QueueBindAsync(
+            RabbitMqConstants.UserCreatedRetryQueue,
+            RabbitMqConstants.RetryExchange,
+            RabbitMqConstants.UserCreatedRetryRoutingKey,
+            cancellationToken: cancellationToken);
+
+        await _channel.QueueBindAsync(
+            RabbitMqConstants.UserCreatedDlq,
+            RabbitMqConstants.DeadLetterExchange,
+            RabbitMqConstants.UserCreatedDlqRoutingKey,
+            cancellationToken: cancellationToken);
     }
+
+
+    // =====================================================
+    // Start Consumers
+    // =====================================================
 
     private async Task StartConsumerAsync(
         CancellationToken stoppingToken)
@@ -128,18 +250,56 @@ public class RabbitMqConsumerService : BackgroundService
                 stoppingToken);
         };
 
+
+        // Customer Registered
+
         await _channel!.BasicConsumeAsync(
-            RabbitMqConstants.CustomerRegisteredQueue,
-            false,
+            queue:
+                RabbitMqConstants.CustomerRegisteredQueue,
+
+            autoAck: false,
+
             consumerTag: "",
+
             noLocal: false,
+
             exclusive: false,
+
             arguments: null,
+
             consumer: consumer,
+
+            cancellationToken: stoppingToken);
+
+
+        // User Created
+
+        await _channel.BasicConsumeAsync(
+            queue:
+                RabbitMqConstants.UserCreatedQueue,
+
+            autoAck: false,
+
+            consumerTag: "",
+
+            noLocal: false,
+
+            exclusive: false,
+
+            arguments: null,
+
+            consumer: consumer,
+
             cancellationToken: stoppingToken);
     }
 
-    private async Task ProcessMessageAsync(BasicDeliverEventArgs args,
+
+    // =====================================================
+    // Process Message
+    // =====================================================
+
+    private async Task ProcessMessageAsync(
+        BasicDeliverEventArgs args,
         CancellationToken cancellationToken)
     {
         try
@@ -148,29 +308,88 @@ public class RabbitMqConsumerService : BackgroundService
                 Encoding.UTF8.GetString(
                     args.Body.ToArray());
 
+            _logger.LogInformation(
+                "RabbitMQ message received. RoutingKey: {RoutingKey}",
+                args.RoutingKey);
+
+
             using var scope =
                 _scopeFactory.CreateScope();
 
-            var handler =
-                scope.ServiceProvider
-                    .GetRequiredService<CustomerRegisteredConsumer>();
 
-            await handler.HandleAsync(body);
+            // ---------------------------------------------
+            // customer.registered
+            // ---------------------------------------------
+
+            if (args.RoutingKey ==
+                RabbitMqConstants.CustomerRegisteredRoutingKey)
+            {
+                var handler =
+                    scope.ServiceProvider
+                        .GetRequiredService<
+                            CustomerRegisteredConsumer>();
+
+                await handler.HandleAsync(body);
+            }
+
+
+            // ---------------------------------------------
+            // user.created
+            // ---------------------------------------------
+
+            else if (args.RoutingKey ==
+                     RabbitMqConstants.UserCreatedRoutingKey)
+            {
+                var handler =
+                    scope.ServiceProvider
+                        .GetRequiredService<
+                            UserCreatedConsumer>();
+
+                await handler.HandleAsync(body);
+            }
+
+
+            // ---------------------------------------------
+            // Unknown message
+            // ---------------------------------------------
+
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Unknown routing key: {args.RoutingKey}");
+            }
+
+
+            // ---------------------------------------------
+            // ACK
+            // ---------------------------------------------
 
             await _channel!.BasicAckAsync(
-                args.DeliveryTag,
-                false);
+                deliveryTag: args.DeliveryTag,
+                multiple: false,
+                cancellationToken: cancellationToken);
+
+            _logger.LogInformation(
+                "RabbitMQ message processed successfully. RoutingKey: {RoutingKey}",
+                args.RoutingKey);
         }
         catch (Exception ex)
         {
-            Console.WriteLine(
-                $"RabbitMQ processing failed: {ex.Message}");
+            _logger.LogError(
+                ex,
+                "RabbitMQ message processing failed. RoutingKey: {RoutingKey}",
+                args.RoutingKey);
 
             await HandleFailureAsync(
                 args,
                 cancellationToken);
         }
     }
+
+
+    // =====================================================
+    // Failure Handling
+    // =====================================================
 
     private async Task HandleFailureAsync(
         BasicDeliverEventArgs args,
@@ -179,6 +398,11 @@ public class RabbitMqConsumerService : BackgroundService
         var retryCount =
             GetRetryCount(
                 args.BasicProperties);
+
+
+        // ---------------------------------------------
+        // Maximum retries reached
+        // ---------------------------------------------
 
         if (retryCount >= _options.MaxRetryCount)
         {
@@ -189,21 +413,44 @@ public class RabbitMqConsumerService : BackgroundService
             return;
         }
 
+
+        // ---------------------------------------------
+        // Send to retry queue
+        // ---------------------------------------------
+
         await PublishToRetryQueueAsync(
             args,
             retryCount + 1,
             cancellationToken);
 
+
+        // Original message successfully transferred
+        // to retry queue.
+
         await _channel!.BasicAckAsync(
-            args.DeliveryTag,
-            false);
+            deliveryTag: args.DeliveryTag,
+            multiple: false,
+            cancellationToken: cancellationToken);
+
+
+        _logger.LogWarning(
+            "Message moved to retry queue. RoutingKey: {RoutingKey}, RetryCount: {RetryCount}",
+            args.RoutingKey,
+            retryCount + 1);
     }
+
+
+    // =====================================================
+    // Get Retry Count
+    // =====================================================
 
     private int GetRetryCount(
         IReadOnlyBasicProperties properties)
     {
         if (properties.Headers == null)
+        {
             return 0;
+        }
 
         if (!properties.Headers.TryGetValue(
                 "x-retry-count",
@@ -221,63 +468,166 @@ public class RabbitMqConsumerService : BackgroundService
         }
 
         if (value is int intValue)
+        {
             return intValue;
+        }
 
         return 0;
     }
 
-    private async Task PublishToRetryQueueAsync(BasicDeliverEventArgs args, int retryCount,
-    CancellationToken cancellationToken)
-    {
-        var properties = new BasicProperties
-        {
-            ContentType = args.BasicProperties.ContentType,
-            DeliveryMode = DeliveryModes.Persistent,
-            Headers =
-                new Dictionary<string, object?>
-                {
-                    ["x-retry-count"] = retryCount
-                }
-        };
 
-        await _channel!.BasicPublishAsync(exchange: RabbitMqConstants.RetryExchange,
-            routingKey: RabbitMqConstants.CustomerRegisteredRetryRoutingKey,
-            mandatory: false, basicProperties: properties,
-            body: args.Body.ToArray(), cancellationToken: cancellationToken);
+    // =====================================================
+    // Publish to Retry Queue
+    // =====================================================
+
+    private async Task PublishToRetryQueueAsync(
+        BasicDeliverEventArgs args,
+        int retryCount,
+        CancellationToken cancellationToken)
+    {
+        string retryRoutingKey;
+
+        if (args.RoutingKey ==
+            RabbitMqConstants.UserCreatedRoutingKey)
+        {
+            retryRoutingKey =
+                RabbitMqConstants.UserCreatedRetryRoutingKey;
+        }
+        else
+        {
+            retryRoutingKey =
+                RabbitMqConstants.CustomerRegisteredRetryRoutingKey;
+        }
+
+
+        var properties =
+            new BasicProperties
+            {
+                ContentType =
+                    args.BasicProperties.ContentType,
+
+                DeliveryMode =
+                    DeliveryModes.Persistent,
+
+                Headers =
+                    new Dictionary<string, object?>
+                    {
+                        ["x-retry-count"] =
+                            retryCount
+                    }
+            };
+
+
+        await _channel!.BasicPublishAsync(
+            exchange:
+                RabbitMqConstants.RetryExchange,
+
+            routingKey:
+                retryRoutingKey,
+
+            mandatory: false,
+
+            basicProperties:
+                properties,
+
+            body:
+                args.Body.ToArray(),
+
+            cancellationToken:
+                cancellationToken);
     }
 
-    private async Task MoveToDeadLetterQueueAsync(BasicDeliverEventArgs args, CancellationToken cancellationToken)
-    {
-        var properties = new BasicProperties
-        {
-            ContentType = args.BasicProperties.ContentType,
-            DeliveryMode = DeliveryModes.Persistent
-        };
 
-        await _channel!.BasicPublishAsync(exchange:RabbitMqConstants.DeadLetterExchange,
-            routingKey: RabbitMqConstants.CustomerRegisteredDlqRoutingKey, mandatory: false, basicProperties: properties,
-            body: args.Body.ToArray(), cancellationToken: cancellationToken);
+    // =====================================================
+    // Dead Letter Queue
+    // =====================================================
+
+    private async Task MoveToDeadLetterQueueAsync(
+        BasicDeliverEventArgs args,
+        CancellationToken cancellationToken)
+    {
+        string dlqRoutingKey;
+
+        if (args.RoutingKey ==
+            RabbitMqConstants.UserCreatedRoutingKey)
+        {
+            dlqRoutingKey =
+                RabbitMqConstants.UserCreatedDlqRoutingKey;
+        }
+        else
+        {
+            dlqRoutingKey =
+                RabbitMqConstants.CustomerRegisteredDlqRoutingKey;
+        }
+
+
+        var properties =
+            new BasicProperties
+            {
+                ContentType =
+                    args.BasicProperties.ContentType,
+
+                DeliveryMode =
+                    DeliveryModes.Persistent
+            };
+
+
+        await _channel!.BasicPublishAsync(
+            exchange:
+                RabbitMqConstants.DeadLetterExchange,
+
+            routingKey:
+                dlqRoutingKey,
+
+            mandatory: false,
+
+            basicProperties:
+                properties,
+
+            body:
+                args.Body.ToArray(),
+
+            cancellationToken:
+                cancellationToken);
+
 
         await _channel.BasicAckAsync(
-            args.DeliveryTag,
-            multiple: false);
+            deliveryTag: args.DeliveryTag,
+            multiple: false,
+            cancellationToken: cancellationToken);
 
-        Console.WriteLine(
-            "Message moved to Dead Letter Queue.");
+
+        _logger.LogError(
+            "Message moved to Dead Letter Queue. RoutingKey: {RoutingKey}",
+            args.RoutingKey);
     }
 
-    public override async Task StopAsync(CancellationToken cancellationToken)
+
+    // =====================================================
+    // Stop
+    // =====================================================
+
+    public override async Task StopAsync(
+        CancellationToken cancellationToken)
     {
-        if (_channel != null)
+        try
         {
-            await _channel.CloseAsync(cancellationToken);
-        }
+            if (_channel != null)
+            {
+                await _channel.CloseAsync(
+                    cancellationToken);
+            }
 
-        if (_connection != null)
+            if (_connection != null)
+            {
+                await _connection.CloseAsync(
+                    cancellationToken);
+            }
+        }
+        finally
         {
-            await _connection.CloseAsync(cancellationToken);
+            await base.StopAsync(
+                cancellationToken);
         }
-
-        await base.StopAsync(cancellationToken);
     }
 }

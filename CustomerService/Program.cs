@@ -6,6 +6,7 @@ using CustomerService.Infrastructure.DependencyInjection;
 using CustomerService.Infrastructure.Logging;
 using CustomerService.Infrastructure.Messaging;
 using CustomerService.Infrastructure.Middleware;
+using CustomerService.Infrastructure.Persistence.Repositories;
 using CustomerService.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -141,17 +142,6 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
-
-
-builder.Services.Configure<RabbitMqOptions>(
-    configuration.GetSection("RabbitMq"));
-
-builder.Services.AddScoped<
-    CustomerRegisteredConsumer>();
-
-builder.Services.AddHostedService<
-    RabbitMqConsumerService>();
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -168,7 +158,7 @@ app.UseCorrelationId();
 app.UseRequestLogging();
 app.UseGlobalExceptionMiddleware();
 //app.UseCustomMiddleware();
-
+app.UseStaticFiles();
 app.UseAuthentication();
 
 app.UseAuthorization();

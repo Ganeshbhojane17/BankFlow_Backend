@@ -16,7 +16,11 @@
     @State NVARCHAR(100) = NULL,
     @Country NVARCHAR(100) = NULL,
     @PostalCode NVARCHAR(20) = NULL,
-    @IsActive BIT,
+    @ProfileImagePath NVARCHAR(500) = NULL,
+
+    @DocumentPath NVARCHAR(500) = NULL,
+    @DocumentName NVARCHAR(255) = NULL,
+    @DocumentContentType NVARCHAR(100) = NULL,
     @ModifiedBy NVARCHAR(100)
 )
 AS
@@ -41,9 +45,12 @@ BEGIN
         State = @State,
         Country = @Country,
         PostalCode = @PostalCode,
-        IsActive = @IsActive,
         ModifiedDate = GETUTCDATE(),
-        ModifiedBy = @ModifiedBy
+        ModifiedBy = @ModifiedBy,
+        ProfileImagePath = @ProfileImagePath,
+        DocumentPath = @DocumentPath,
+        DocumentName = @DocumentName,
+        DocumentContentType = @DocumentContentType
     WHERE Id = @Id
       AND IsDeleted = 0;
 END

@@ -76,6 +76,7 @@
     <Build Include="Stored Procedures\usp_Outbox_MarkProcessed.sql" />
     <Build Include="Stored Procedures\usp_Outbox_GetPending.sql" />
     <Build Include="Stored Procedures\usp_Outbox_MarkFailed.sql" />
+    <Build Include="Stored Procedures\usp_User_CreateFromCustomer.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Seed\RoleSeed.sql" />

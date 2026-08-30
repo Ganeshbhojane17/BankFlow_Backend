@@ -1,11 +1,9 @@
-﻿CREATE PROCEDURE [dbo].[usp_Customer_GetAll]
+﻿CREATE PROCEDURE dbo.usp_Customer_GetAll
 (
-    @PageNumber INT = 1,
-    @PageSize INT = 10,
+    @PageNumber INT,
+    @PageSize INT,
     @Search NVARCHAR(200) = NULL,
-    @IsActive BIT = NULL,
-    @SortBy NVARCHAR(50) = 'CreatedDate',
-    @SortDirection NVARCHAR(4) = 'DESC'
+    @IsActive BIT = NULL
 )
 AS
 BEGIN
@@ -15,44 +13,74 @@ BEGIN
     DECLARE @Offset INT =
         (@PageNumber - 1) * @PageSize;
 
+
     SELECT
         Id,
+        CustomerNumber,
+        UserId,
         FirstName,
         LastName,
         Email,
         PhoneNumber,
         DateOfBirth,
+        Gender,
+        PANNumber,
+        AadhaarNumber,
+        Occupation,
+        AnnualIncome,
         Address,
         City,
         State,
+        Country,
+        PostalCode,
+
+        -- Files
+        ProfileImagePath,
+        DocumentPath,
+        DocumentName,
+        DocumentContentType,
+
         IsActive,
-        CreatedDate
+        CreatedDate,
+        CreatedBy,
+        ModifiedDate,
+        ModifiedBy
+
     FROM Customers
+
     WHERE
         (
             @Search IS NULL
             OR FirstName LIKE '%' + @Search + '%'
             OR LastName LIKE '%' + @Search + '%'
             OR Email LIKE '%' + @Search + '%'
+            OR CustomerNumber LIKE '%' + @Search + '%'
         )
         AND
         (
             @IsActive IS NULL
             OR IsActive = @IsActive
         )
-    ORDER BY
-        CreatedDate DESC
+
+    ORDER BY Id DESC
+
     OFFSET @Offset ROWS
     FETCH NEXT @PageSize ROWS ONLY;
 
+
+    -- Total records
+
     SELECT COUNT(1)
+
     FROM Customers
+
     WHERE
         (
             @Search IS NULL
             OR FirstName LIKE '%' + @Search + '%'
             OR LastName LIKE '%' + @Search + '%'
             OR Email LIKE '%' + @Search + '%'
+            OR CustomerNumber LIKE '%' + @Search + '%'
         )
         AND
         (

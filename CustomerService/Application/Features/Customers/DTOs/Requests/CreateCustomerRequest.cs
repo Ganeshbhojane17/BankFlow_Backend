@@ -31,5 +31,7 @@
         public string? Country { get; set; }
 
         public string? PostalCode { get; set; }
+        public IFormFile? ProfileImage { get; set; }
+        public IFormFile? Document { get; set; }
     }
 }

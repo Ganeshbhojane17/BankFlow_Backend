@@ -31,6 +31,7 @@
     <Folder Include="Infrastructure\Extensions\" />
     <Folder Include="Infrastructure\Mapping\" />
     <Folder Include="Infrastructure\Persistence\Sql\" />
+    <Folder Include="wwwroot\" />
     <Folder Include="Shared\Extensions\" />
     <Folder Include="Shared\Responses\" />
   </ItemGroup>
