@@ -1,0 +1,208 @@
+name: bankflowcrm
+
+services:
+
+  # ============================================================
+  # SQL SERVER
+  # ============================================================
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: bankflow-sqlserver
+
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+
+    ports:
+      - "1433:1433"
+
+    volumes:
+      # Existing volume containing the BankFlowCRM database
+      - bankflow-sql-data:/var/opt/mssql
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -Q \"SELECT 1\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+    networks:
+      - bankflow-network
+
+    restart: unless-stopped
+
+
+  # ============================================================
+  # RABBITMQ
+  # ============================================================
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: bankflow-rabbitmq
+
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+    volumes:
+      - bankflow-rabbitmq-data:/var/lib/rabbitmq
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "rabbitmq-diagnostics",
+          "-q",
+          "ping"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+    networks:
+      - bankflow-network
+
+    restart: unless-stopped
+
+
+  # ============================================================
+  # IDENTITY SERVICE
+  # ============================================================
+  identity-service:
+    build:
+      context: .
+      dockerfile: IdentityService/Dockerfile
+
+    container_name: bankflow-identity-service
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+
+      # SQL Server
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=BankFlowCRM;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+
+      # RabbitMQ
+      RabbitMq__HostName: "rabbitmq"
+      RabbitMq__Port: "5672"
+      RabbitMq__UserName: "guest"
+      RabbitMq__Password: "guest"
+      RabbitMq__ExchangeName: "bankflow.events"
+
+    ports:
+      - "7206:8080"
+
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+      rabbitmq:
+        condition: service_healthy
+
+    networks:
+      - bankflow-network
+
+    restart: unless-stopped
+
+
+  # ============================================================
+  # CUSTOMER SERVICE
+  # ============================================================
+  customer-service:
+    build:
+      context: .
+      dockerfile: CustomerService/Dockerfile
+
+    container_name: bankflow-customer-service
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+
+      # SQL Server
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=BankFlowCRM;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+
+      # RabbitMQ
+      RabbitMq__HostName: "rabbitmq"
+      RabbitMq__Port: "5672"
+      RabbitMq__UserName: "guest"
+      RabbitMq__Password: "guest"
+      RabbitMq__ExchangeName: "bankflow.events"
+      RabbitMq__QueueName: "customer-service"
+      RabbitMq__RoutingKey: "customer.registered"
+      RabbitMq__RetryDelaySeconds: "10"
+      RabbitMq__MaxRetryCount: "3"
+
+    ports:
+      - "7087:8080"
+
+    # Persistent customer profile images and documents
+    volumes:
+      - bankflow-customer-uploads:/app/wwwroot
+
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+      rabbitmq:
+        condition: service_healthy
+
+    networks:
+      - bankflow-network
+
+    restart: unless-stopped
+
+
+  # ============================================================
+  # REACT UI
+  # ============================================================
+  bankflow-ui:
+    build:
+      context: ../bankflow-ui
+      dockerfile: Dockerfile
+
+    container_name: bankflow-ui
+
+    ports:
+      - "5173:80"
+
+    depends_on:
+      identity-service:
+        condition: service_started
+
+      customer-service:
+        condition: service_started
+
+    networks:
+      - bankflow-network
+
+    restart: unless-stopped
+
+
+# ==============================================================
+# VOLUMES
+# ==============================================================
+volumes:
+
+  # Existing SQL Server volume.
+  # Contains the existing BankFlowCRM database.
+  bankflow-sql-data:
+    external: true
+
+  # RabbitMQ persistent data
+  bankflow-rabbitmq-data:
+
+  # Customer profile images and documents
+  bankflow-customer-uploads:
+
+
+# ==============================================================
+# NETWORK
+# ==============================================================
+networks:
+
+  bankflow-network:
+    name: bankflow-network
