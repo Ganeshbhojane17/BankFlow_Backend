@@ -85,6 +85,8 @@ services:
 
       # SQL Server
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=BankFlowCRM;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+      #jwt
+      Jwt__Key: "${JWT_KEY}"
 
       # RabbitMQ
       RabbitMq__HostName: "rabbitmq"
