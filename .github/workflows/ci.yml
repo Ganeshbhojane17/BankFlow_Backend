@@ -28,11 +28,14 @@ jobs:
       - name: Display .NET version
         run: dotnet --version
 
-      - name: Restore dependencies
-        run: dotnet restore BankFlowCRM.slnx
+      - name: Restore IdentityService
+        run: dotnet restore IdentityService/IdentityService.csproj
 
-      - name: Build solution
-        run: dotnet build BankFlowCRM.slnx --configuration Release --no-restore
+      - name: Restore CustomerService
+        run: dotnet restore CustomerService/CustomerService.csproj
 
-      - name: Run tests
-        run: dotnet test BankFlowCRM.slnx --configuration Release --no-build
+      - name: Build IdentityService
+        run: dotnet build IdentityService/IdentityService.csproj --configuration Release --no-restore
+
+      - name: Build CustomerService
+        run: dotnet build CustomerService/CustomerService.csproj --configuration Release --no-restore
