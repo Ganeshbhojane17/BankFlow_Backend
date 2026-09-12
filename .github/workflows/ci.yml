@@ -1,4 +1,4 @@
-name: BankFlowCRM CI
+name: BankFlowCRM Backend CI
 
 on:
   push:
@@ -11,8 +11,8 @@ on:
 
 jobs:
 
-  hello:
-    name: CI Test
+  build:
+    name: Build Backend
     runs-on: ubuntu-latest
 
     steps:
@@ -20,13 +20,19 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Display repository information
-        run: |
-          echo "BankFlowCRM CI started"
-          echo "Repository: $GITHUB_REPOSITORY"
-          echo "Branch: $GITHUB_REF_NAME"
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
 
-      - name: Verify files
-        run: |
-          echo "Repository files:"
-          ls -la
+      - name: Display .NET version
+        run: dotnet --version
+
+      - name: Restore dependencies
+        run: dotnet restore BankFlowCRM.slnx
+
+      - name: Build solution
+        run: dotnet build BankFlowCRM.slnx --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test BankFlowCRM.slnx --configuration Release --no-build
