@@ -1,0 +1,32 @@
+name: BankFlowCRM CI
+
+on:
+  push:
+    branches:
+      - master
+
+  pull_request:
+    branches:
+      - master
+
+jobs:
+
+  hello:
+    name: CI Test
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Display repository information
+        run: |
+          echo "BankFlowCRM CI started"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Branch: $GITHUB_REF_NAME"
+
+      - name: Verify files
+        run: |
+          echo "Repository files:"
+          ls -la
