@@ -1,10 +1,9 @@
-name: BankFlowCRM Backend CI
+name: BankFlowCRM Backend CI/CD
 
 on:
   push:
     branches:
       - master
-
     tags:
       - 'v*.*.*'
 
@@ -15,9 +14,9 @@ on:
 
 jobs:
 
-  # ==========================================
-  # JOB 1 - BUILD BACKEND
-  # ==========================================
+  # ==========================================================
+  # 1. BUILD .NET APPLICATION
+  # ==========================================================
 
   build:
     name: Build Backend
@@ -28,42 +27,37 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
 
-
       - name: Display .NET version
         run: dotnet --version
-
 
       - name: Restore IdentityService
         run: dotnet restore IdentityService/IdentityService.csproj
 
-
       - name: Restore CustomerService
         run: dotnet restore CustomerService/CustomerService.csproj
 
-
       - name: Build IdentityService
         run: dotnet build IdentityService/IdentityService.csproj --configuration Release --no-restore
-
 
       - name: Build CustomerService
         run: dotnet build CustomerService/CustomerService.csproj --configuration Release --no-restore
 
 
-  # ==========================================
-  # JOB 2 - BUILD AND PUSH DOCKER IMAGES
-  # ==========================================
+  # ==========================================================
+  # 2. BUILD & PUSH DOCKER IMAGES
+  # ==========================================================
 
   docker:
     name: Build Docker Images
     runs-on: ubuntu-latest
 
-    needs: build
+    needs:
+      - build
 
     if: github.event_name == 'push'
 
@@ -72,29 +66,14 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-
-      # ------------------------------------------
-      # Docker Hub Login
-      # ------------------------------------------
-
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-
-      # ------------------------------------------
-      # Docker Buildx
-      # ------------------------------------------
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-
-      # ------------------------------------------
-      # Generate Docker Tags
-      # ------------------------------------------
 
       - name: Generate Docker image tags
         id: meta
@@ -111,9 +90,9 @@ jobs:
           fi
 
 
-      # ==========================================
-      # IDENTITY SERVICE
-      # ==========================================
+      # ------------------------------------------------------
+      # IdentityService
+      # ------------------------------------------------------
 
       - name: Build and push IdentityService
         uses: docker/build-push-action@v6
@@ -128,9 +107,9 @@ jobs:
             ${{ steps.meta.outputs.version_tag && format('ganesh170599/bankflow-identity-service:{0}', steps.meta.outputs.version_tag) || '' }}
 
 
-      # ==========================================
-      # CUSTOMER SERVICE
-      # ==========================================
+      # ------------------------------------------------------
+      # CustomerService
+      # ------------------------------------------------------
 
       - name: Build and push CustomerService
         uses: docker/build-push-action@v6
@@ -143,3 +122,92 @@ jobs:
             ganesh170599/bankflow-customer-service:latest
             ganesh170599/bankflow-customer-service:${{ steps.meta.outputs.sha_tag }}
             ${{ steps.meta.outputs.version_tag && format('ganesh170599/bankflow-customer-service:{0}', steps.meta.outputs.version_tag) || '' }}
+
+
+  # ==========================================================
+  # 3. DEPLOY TO AZURE VM
+  # ==========================================================
+
+  deploy:
+    name: Deploy Backend to Azure VM
+    runs-on: ubuntu-latest
+
+    needs:
+      - docker
+
+    if: github.event_name == 'push'
+
+    steps:
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "${{ secrets.AZURE_VM_SSH_KEY }}" > ~/.ssh/bankflow-github-actions
+
+          chmod 600 ~/.ssh/bankflow-github-actions
+
+          ssh-keyscan -H "${{ secrets.AZURE_VM_HOST }}" >> ~/.ssh/known_hosts
+
+          chmod 644 ~/.ssh/known_hosts
+
+
+      - name: Test SSH connection
+        shell: bash
+        run: |
+          ssh \
+            -i ~/.ssh/bankflow-github-actions \
+            -o StrictHostKeyChecking=yes \
+            "${{ secrets.AZURE_VM_USERNAME }}@${{ secrets.AZURE_VM_HOST }}" \
+            "echo 'SSH connection to Azure VM successful'"
+
+
+      - name: Deploy Backend
+        shell: bash
+        run: |
+          ssh \
+            -i ~/.ssh/bankflow-github-actions \
+            -o StrictHostKeyChecking=yes \
+            "${{ secrets.AZURE_VM_USERNAME }}@${{ secrets.AZURE_VM_HOST }}" \
+            << 'EOF'
+
+          set -e
+
+          echo "=========================================="
+          echo "Starting BankFlowCRM Backend Deployment"
+          echo "=========================================="
+
+          cd /opt/bankflowcrm
+
+          echo ""
+          echo "Pulling latest backend Docker images..."
+
+          sudo docker compose pull \
+            identity-service \
+            customer-service
+
+          echo ""
+          echo "Restarting backend services..."
+
+          sudo docker compose up -d \
+            identity-service \
+            customer-service
+
+          echo ""
+          echo "Waiting for containers to start..."
+
+          sleep 10
+
+          echo ""
+          echo "Current Docker Compose status:"
+
+          sudo docker compose ps
+
+          echo ""
+          echo "=========================================="
+          echo "Backend deployment completed"
+          echo "=========================================="
+
+          EOF
