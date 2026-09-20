@@ -71,5 +71,8 @@
     <Build Include="Stored Procedures\usp_Customer_ChangeStatus.sql" />
     <Build Include="Stored Procedures\usp_Customer_GetByUserId.sql" />
     <Build Include="Stored Procedures\usp_Customer_UpdateUserId.sql" />
+    <Build Include="Stored Procedures\usp_Dashboard_GetSummary.sql" />
+    <Build Include="Stored Procedures\usp_Dashboard_GetRecentCustomers.sql" />
+    <Build Include="Stored Procedures\usp_Dashboard_GetLoanOverview.sql" />
   </ItemGroup>
 </Project>

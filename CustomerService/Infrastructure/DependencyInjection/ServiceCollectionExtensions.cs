@@ -1,6 +1,8 @@
 ﻿using CustomerService.Application.Common.Interfaces;
 using CustomerService.Application.Features.Customers.Interfaces;
 using CustomerService.Application.Features.Customers.Services;
+using CustomerService.Application.Features.Dashboard.Interfaces;
+using CustomerService.Application.Features.Dashboard.Services;
 using CustomerService.Infrastructure.FileStorage;
 using CustomerService.Infrastructure.Messaging;
 using CustomerService.Infrastructure.Persistence.Dapper;
@@ -20,6 +22,9 @@ namespace CustomerService.Infrastructure.DependencyInjection
             services.AddScoped<ICustomerService, CustomerServices>();
             services.AddScoped<IFileStorageService,LocalFileStorageService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddScoped<IDashboardRepository, DashboardRepository>();
+            services.AddScoped<IDashboardService, DashboardService>();
+
             services.Configure<RabbitMqOptions>(configuration.GetSection("RabbitMq"));
             services.AddScoped<CustomerRegisteredConsumer>();
             services.AddHostedService<RabbitMqConsumerService>();
