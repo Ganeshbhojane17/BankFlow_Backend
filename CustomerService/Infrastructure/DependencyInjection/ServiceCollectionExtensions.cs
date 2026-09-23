@@ -3,11 +3,14 @@ using CustomerService.Application.Features.Customers.Interfaces;
 using CustomerService.Application.Features.Customers.Services;
 using CustomerService.Application.Features.Dashboard.Interfaces;
 using CustomerService.Application.Features.Dashboard.Services;
+using CustomerService.Configuration;
+using CustomerService.Infrastructure.Caching;
 using CustomerService.Infrastructure.FileStorage;
 using CustomerService.Infrastructure.Messaging;
 using CustomerService.Infrastructure.Persistence.Dapper;
 using CustomerService.Infrastructure.Persistence.Repositories;
 using CustomerService.Infrastructure.Security;
+using StackExchange.Redis;
 
 namespace CustomerService.Infrastructure.DependencyInjection
 {
@@ -33,6 +36,20 @@ namespace CustomerService.Infrastructure.DependencyInjection
             services.AddHostedService<OutboxProcessor>();
             services.AddScoped<UserCreatedConsumer>();
 
+            //For redis
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration =
+                    configuration.GetConnectionString("Redis");
+
+                options.InstanceName = "BankFlowCRM:";
+            });
+
+            services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(
+               configuration.GetConnectionString("Redis")!));
+
+            services.Configure<CacheSettings>(configuration.GetSection("CacheSettings"));
+            services.AddScoped<ICacheService, RedisCacheService>();
 
             return services;
         }

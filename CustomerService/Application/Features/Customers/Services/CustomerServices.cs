@@ -24,10 +24,11 @@ namespace CustomerService.Application.Features.Customers.Services
         private readonly ILogger<CustomerServices> _logger;
         private readonly IOutboxRepository _outboxRepository;
         private readonly DapperContext _context;
+        private readonly ICacheService _cacheService;
 
         public CustomerServices(ICustomerRepository repository, ICurrentUserService currentUser,
             IMapper mapper, IFileStorageService fileStorage, ILogger<CustomerServices> logger, 
-            IOutboxRepository outboxRepository, DapperContext context)
+            IOutboxRepository outboxRepository, DapperContext context, ICacheService cacheService)
         {
             _repository = repository;
             _currentUser = currentUser;
@@ -36,6 +37,7 @@ namespace CustomerService.Application.Features.Customers.Services
             _logger = logger;
             _outboxRepository = outboxRepository;
             _context = context;
+            _cacheService = cacheService;
         }
 
         public async Task<Result<Customer>> CreateAsync(CreateCustomerRequest request)
@@ -103,6 +105,9 @@ namespace CustomerService.Application.Features.Customers.Services
                 }
                 // 6. Insert Customer
                 var customerId = await _repository.CreateAsync(customer, connection, transaction);
+
+                // As new customer added, remove data from cache
+                await _cacheService.RemoveDashboardCachesAsync();
                 customer.Id = customerId;
                 // 7. Create User Provisioning Event
                 var userEvent = new UserProvisioningRequested
@@ -201,6 +206,8 @@ namespace CustomerService.Application.Features.Customers.Services
                     "Customer not found.");
             }
             await _repository.DeleteAsync(id,"System");
+            // As new customer added, remove data from cache
+            await _cacheService.RemoveDashboardCachesAsync();
             return Result.Ok(
                 "Customer deleted successfully.");
         }
@@ -291,6 +298,10 @@ namespace CustomerService.Application.Features.Customers.Services
 
                 // Step 4 : Save
                 await _repository.UpdateAsync(customer);
+
+                // As new customer added, remove data from cache
+                await _cacheService.RemoveDashboardCachesAsync();
+
                 // Step 5 : Return Response
                 var response = _mapper.Map<CustomerResponse>(customer);
 
